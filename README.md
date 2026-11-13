@@ -23,8 +23,20 @@ authMiddleware ─► capabilitiesMiddleware ─► requires(policy) ─► load
 - `src/capabilities/policy.ts` holds one `Requirement` shape and a pure `check()`, plus named `policies`.
   Routes (`requires(policies.admin)`) and UI (`<Can req={policies.admin}>`) use the same object,
   so they can't drift apart.
-- `src/middleware/capabilities.ts` fetches everything once per user/org and caches the promise.
-  After a change, call `invalidateCapabilities()` and then `revalidate()`.
+- `src/capabilities/store.ts` is the **single source of truth**, and it doesn't import React.
+  `ensure(user)` loads once (in parallel, shared between concurrent callers), `get()` reads synchronously,
+  `subscribe()` notifies listeners, and `invalidate()` clears it.
+
+## Where capabilities are read
+
+| Where | How |
+|---|---|
+| Route gates & loaders | `context.get(capabilitiesContext)`: one snapshot per navigation, set by middleware from `store.ensure()` |
+| Components | `useCapabilities()` / `<Can>`: `useSyncExternalStore` on the store, falling back to the `app` loader data |
+| Outside React | `canNow(policies.x)` / `capabilitiesStore.get()`. See `src/api/client.ts` |
+
+Refresh from anywhere: `capabilitiesStore.invalidate()`. `main.tsx` subscribes and calls
+`router.revalidate()`, so middleware re-runs and the current page is checked again.
 - `src/context.ts` has a `declare module "react-router" { interface Future { v8_middleware: true } }`.
   In data mode it's **types only** (no runtime flag): it makes loader `context` a typed `RouterContextProvider`.
 

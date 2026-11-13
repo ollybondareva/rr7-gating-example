@@ -1,11 +1,17 @@
-import type { ReactNode } from "react";
+import { useSyncExternalStore, type ReactNode } from "react";
 import { useRouteLoaderData } from "react-router";
 import { can, type Requirement } from "../capabilities/policy";
+import { capabilitiesStore } from "../capabilities/store";
 import type { Capabilities } from "../capabilities/types";
 
-/** Capabilities resolved by the "app" route's middleware and returned by its loader. */
+/**
+ * Live capabilities from the store. While a refresh is running (snapshot is null),
+ * it falls back to the values the "app" route's loader returned for this navigation.
+ */
 export function useCapabilities(): Capabilities {
-  const caps = useRouteLoaderData("app") as Capabilities | undefined;
+  const live = useSyncExternalStore(capabilitiesStore.subscribe, capabilitiesStore.get);
+  const fromLoader = useRouteLoaderData("app") as Capabilities | undefined;
+  const caps = live ?? fromLoader;
   if (!caps) throw new Error("useCapabilities must be used under the 'app' route");
   return caps;
 }

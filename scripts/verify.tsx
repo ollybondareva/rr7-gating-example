@@ -5,11 +5,12 @@ const store: Record<string, string> = {};
 const { createMemoryRouter, RouterContextProvider } = await import("react-router");
 const { routes } = await import("../src/routes");
 const { writeDemo, readDemo } = await import("../src/api/mock");
-const { invalidateCapabilities } = await import("../src/middleware/capabilities");
+const { capabilitiesStore, canNow } = await import("../src/capabilities/store");
+const { policies } = await import("../src/capabilities/policy");
 
 async function visit(path: string, patch: any = {}, clientNav = false) {
   writeDemo({ ...readDemo(), ...patch });
-  invalidateCapabilities();
+  capabilitiesStore.invalidate();
   const router = createMemoryRouter(routes, { initialEntries: [clientNav ? "/" : path], getContext: () => new RouterContextProvider() });
   await new Promise<void>((res) => (router.state.initialized ? res() : router.subscribe((st) => st.initialized && res())));
   if (clientNav) await router.navigate(path);
@@ -41,4 +42,9 @@ for (const [name, path, state, want] of cases.flatMap(([n, p, st, w]) => [[n, p,
   if (got !== want) fail++;
   console.log(`${got === want ? "PASS" : "FAIL"}  ${name.padEnd(24)} ${path.padEnd(16)} ${got}${got === want ? "" : `  (want ${want})`}`);
 }
+// Outside React: after a navigation, the store holds the same values the gates used.
+await visit("/", { ...base, roles: ["admin"] });
+const outside = [canNow(policies.admin) === true, canNow(policies.billing) === false, capabilitiesStore.get()?.roles[0] === "admin"];
+console.log(`${outside.every(Boolean) ? "PASS" : "FAIL"}  store readable outside React`);
+if (!outside.every(Boolean)) fail++;
 process.exit(fail ? 1 : 0);

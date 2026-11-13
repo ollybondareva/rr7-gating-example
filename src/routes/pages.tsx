@@ -13,7 +13,8 @@ import {
 import { readDemo, writeDemo } from "../api/mock";
 import { policies } from "../capabilities/policy";
 import { capabilitiesContext, userContext } from "../context";
-import { invalidateCapabilities } from "../middleware/capabilities";
+import { exportReport } from "../api/client";
+import { capabilitiesStore } from "../capabilities/store";
 import { Can, useCapabilities } from "../ui/Can";
 import { DevPanel } from "../ui/DevPanel";
 
@@ -29,7 +30,7 @@ export function RootShell() {
 /* ---------- login (public) ---------- */
 export async function loginAction({ request }: ActionFunctionArgs) {
   writeDemo({ ...readDemo(), loggedIn: true });
-  invalidateCapabilities();
+  capabilitiesStore.invalidate();
   const from = new URL(request.url).searchParams.get("from") ?? "/";
   return redirect(from);
 }
@@ -50,7 +51,7 @@ export function appLoader({ context }: LoaderFunctionArgs) {
 
 export async function logoutAction() {
   writeDemo({ ...readDemo(), loggedIn: false });
-  invalidateCapabilities();
+  capabilitiesStore.invalidate();
   return redirect("/login");
 }
 
@@ -111,7 +112,15 @@ export function pageLoader({ context, request }: LoaderFunctionArgs) {
   return { path: new URL(request.url).pathname, plan: context.get(capabilitiesContext).org.plan };
 }
 
-export const Reports = () => <h1>New reports (flag: newReports)</h1>;
+export function Reports() {
+  return (
+    <section>
+      <h1>New reports (flag: newReports)</h1>
+      {/* exportReport() lives in a plain module and checks capabilities without React */}
+      <button onClick={() => exportReport().then(alert, (e) => alert(e.message))}>Export</button>
+    </section>
+  );
+}
 
 export function AdminLayout() {
   return (

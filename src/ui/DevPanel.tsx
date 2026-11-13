@@ -1,24 +1,21 @@
 import { useState } from "react";
-import { useRevalidator } from "react-router";
 import { readDemo, writeDemo, type DemoState } from "../api/mock";
 import type { FlagName, OrgSettings, Role } from "../capabilities/types";
-import { invalidateCapabilities } from "../middleware/capabilities";
+import { onPermissionsChanged } from "../api/client";
 
 const ROLES: Role[] = ["viewer", "editor", "admin", "owner"];
 const FLAGS: FlagName[] = ["newReports", "aiAssistant"];
 const PLANS: OrgSettings["plan"][] = ["free", "pro", "enterprise"];
 
-/** Simulates a backend change. Invalidate the cache, then revalidate so middleware re-runs. */
+/** Simulates a backend change and reports it the way a websocket or API handler would (outside React). */
 export function DevPanel() {
   const [s, setS] = useState<DemoState>(readDemo);
-  const { revalidate } = useRevalidator();
 
   const update = (patch: Partial<DemoState>) => {
     const next = { ...s, ...patch };
     setS(next);
     writeDemo(next);
-    invalidateCapabilities();
-    revalidate();
+    onPermissionsChanged(); // store.invalidate(), then main.tsx revalidates the router
   };
 
   return (
