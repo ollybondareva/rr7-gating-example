@@ -12,7 +12,6 @@ import { capabilitiesContext, userContext } from "../context";
 export const capabilitiesMiddleware: MiddlewareFunction = async ({
   context,
 }) => {
-  debugger;
   const user = context.get(userContext);
   if (!user)
     throw new Error("capabilitiesMiddleware must run after authMiddleware");
