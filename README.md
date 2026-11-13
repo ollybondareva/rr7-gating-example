@@ -26,6 +26,8 @@ authMiddleware ─► capabilitiesMiddleware ─► requires(policy) ─► load
 - `src/capabilities/store.ts` is the **single source of truth**, and it doesn't import React.
   `ensure(user)` loads once (in parallel, shared between concurrent callers), `get()` reads synchronously,
   `subscribe()` notifies listeners, and `invalidate()` clears it.
+- `src/context.ts` has a `declare module "react-router" { interface Future { v8_middleware: true } }`.
+  In data mode it's **types only** (no runtime flag): it makes loader `context` a typed `RouterContextProvider`.
 
 ## Where capabilities are read
 
@@ -37,8 +39,6 @@ authMiddleware ─► capabilitiesMiddleware ─► requires(policy) ─► load
 
 Refresh from anywhere: `capabilitiesStore.invalidate()`. `main.tsx` subscribes and calls
 `router.revalidate()`, so middleware re-runs and the current page is checked again.
-- `src/context.ts` has a `declare module "react-router" { interface Future { v8_middleware: true } }`.
-  In data mode it's **types only** (no runtime flag): it makes loader `context` a typed `RouterContextProvider`.
 
 ## Gotchas
 - **Where errors render:** a middleware throw bubbles from the *shallower* of the throwing route and the
